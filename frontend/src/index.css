@@ -1,0 +1,201 @@
+@import "tailwindcss";
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design tokens. One brand hue drives the theme: the brand pack (GET /api/brand) can override
+ * --brand-h / --brand-s / --brand-accent-* at runtime, so a neutral build only swaps the pack.
+ * Dark is the default ("Databricks minimal" surfaces tinted with the brand's plum); .light is the
+ * warm stone canvas of the brand's print material.
+ */
+:root {
+  --radius: 0.75rem;
+  --brand-h: 262;          /* violet  #7B4FD0 */
+  --brand-s: 58%;
+  --plum: 266 33% 26%;     /* plum    #3F2C58 */
+  --lavender: 253 77% 95%; /* lavender #EDE9FC */
+  --mark: 354 70% 53%;     /* logo red #DB3241 (logo + critical only) */
+  --lava: 6 100% 57%;      /* Databricks lava, "Powered by" chip only */
+
+  --background: 264 30% 5.5%;
+  --foreground: 260 20% 96%;
+  --card: 263 24% 8.5%;
+  --card-foreground: 260 20% 96%;
+  --elevated: 263 22% 11.5%;
+  --muted: 263 18% 14%;
+  --muted-foreground: 258 12% 71%;
+  --subtle-foreground: 258 9% 54%;
+  --border: 262 16% 16.5%;
+  --border-strong: 262 16% 24%;
+  --input: 262 16% 18%;
+  --primary: var(--brand-h) 72% 72%;
+  --primary-solid: var(--brand-h) var(--brand-s) 56%;
+  --primary-foreground: 0 0% 100%;
+  --ring: var(--brand-h) 72% 72%;
+  --accent-soft: var(--brand-h) 40% 18%;
+  --success: 158 58% 50%;
+  --warning: 38 92% 60%;
+  --destructive: 354 78% 64%;
+  --info: 205 80% 66%;
+  --sidebar: 264 30% 4.5%;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Progressive type scale: base values equal the design's pixel sizes at <1280px. */
+  --font-size: 14px;
+  --text-ui-xs: 11px;
+  --text-ui-sm: 12.5px;
+  --text-ui-base: 14px;
+  --text-ui-md: 15px;
+  --text-ui-lg: 18px;
+  --text-ui-xl: 22px;
+  --text-ui-2xl: 30px;
+  --text-ui-hero: 46px;
+}
+
+.light {
+  --background: 40 18% 90%;   /* stone #EAE6DD */
+  --foreground: 266 30% 16%;
+  --card: 40 30% 97%;
+  --card-foreground: 266 30% 16%;
+  --elevated: 0 0% 100%;
+  --muted: 40 14% 86%;
+  --muted-foreground: 265 12% 36%;
+  --subtle-foreground: 265 8% 48%;
+  --border: 36 12% 80%;
+  --border-strong: 36 10% 70%;
+  --input: 36 12% 78%;
+  --primary: var(--brand-h) var(--brand-s) 46%;
+  --primary-solid: 266 33% 26%;
+  --ring: var(--brand-h) var(--brand-s) 50%;
+  --accent-soft: 253 60% 92%;
+  --success: 158 64% 32%;
+  --warning: 32 92% 40%;
+  --destructive: 354 70% 46%;
+  --info: 205 80% 38%;
+  --sidebar: 40 20% 94%;
+}
+
+@media (min-width: 1600px) {
+  :root { --font-size: 15px; --text-ui-xs: 11.5px; --text-ui-sm: 13px; --text-ui-base: 15px; --text-ui-md: 16px;
+          --text-ui-lg: 19px; --text-ui-xl: 24px; --text-ui-2xl: 32px; --text-ui-hero: 52px; }
+}
+@media (min-width: 1920px) {
+  :root { --font-size: 16px; --text-ui-xs: 12px; --text-ui-sm: 14px; --text-ui-base: 16px; --text-ui-md: 17px;
+          --text-ui-lg: 21px; --text-ui-xl: 26px; --text-ui-2xl: 36px; --text-ui-hero: 58px; }
+}
+@media (min-width: 2560px) {
+  :root { --font-size: 18px; --text-ui-xs: 13.5px; --text-ui-sm: 15.5px; --text-ui-base: 18px; --text-ui-md: 19px;
+          --text-ui-lg: 23px; --text-ui-xl: 29px; --text-ui-2xl: 40px; --text-ui-hero: 66px; }
+}
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-elevated: hsl(var(--elevated));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-subtle: hsl(var(--subtle-foreground));
+  --color-border: hsl(var(--border));
+  --color-border-strong: hsl(var(--border-strong));
+  --color-input: hsl(var(--input));
+  --color-primary: hsl(var(--primary));
+  --color-primary-solid: hsl(var(--primary-solid));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-ring: hsl(var(--ring));
+  --color-accent-soft: hsl(var(--accent-soft));
+  --color-plum: hsl(var(--plum));
+  --color-lavender: hsl(var(--lavender));
+  --color-mark: hsl(var(--mark));
+  --color-lava: hsl(var(--lava));
+  --color-success: hsl(var(--success));
+  --color-warning: hsl(var(--warning));
+  --color-destructive: hsl(var(--destructive));
+  --color-info: hsl(var(--info));
+  --color-sidebar: hsl(var(--sidebar));
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 3px);
+  --radius-sm: calc(var(--radius) - 6px);
+  --text-ui-xs: var(--text-ui-xs);
+  --text-ui-sm: var(--text-ui-sm);
+  --text-ui-base: var(--text-ui-base);
+  --text-ui-md: var(--text-ui-md);
+  --text-ui-lg: var(--text-ui-lg);
+  --text-ui-xl: var(--text-ui-xl);
+  --text-ui-2xl: var(--text-ui-2xl);
+  --text-ui-hero: var(--text-ui-hero);
+}
+
+* { border-color: hsl(var(--border)); }
+html, body, #root { height: 100%; }
+html { font-size: var(--font-size); }
+body {
+  margin: 0;
+  overflow: hidden;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: hsl(var(--brand-h) 60% 50% / 0.35); }
+
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+
+.glass {
+  background: hsl(var(--card) / 0.72);
+  border: 1px solid hsl(var(--border));
+  backdrop-filter: blur(8px);
+}
+
+.hairline { box-shadow: inset 0 0 0 1px hsl(var(--border)); }
+
+.focus-ring:focus-visible, button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Single scroll container: <main>. Thin themed scrollbars. */
+.scroll-y { overflow-y: auto; scrollbar-width: thin; scrollbar-color: hsl(var(--border-strong)) transparent; }
+.scroll-y::-webkit-scrollbar { width: 8px; height: 8px; }
+.scroll-y::-webkit-scrollbar-thumb { background: hsl(var(--border-strong)); border-radius: 8px; }
+
+@keyframes dash-flow { to { stroke-dashoffset: -1000; } }
+@keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
+.skeleton {
+  background: linear-gradient(90deg, hsl(var(--muted)) 0%, hsl(var(--elevated)) 50%, hsl(var(--muted)) 100%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: var(--radius-md, 8px);
+}
+
+@keyframes pulse-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .45; transform: scale(.82); } }
+.pulse-dot { animation: pulse-dot 1.8s ease-in-out infinite; }
+
+/* Hero: soft plum aurora behind the welcome banner */
+.hero-aurora {
+  background:
+    radial-gradient(60% 120% at 12% 0%, hsl(var(--brand-h) 60% 45% / 0.30) 0%, transparent 60%),
+    radial-gradient(50% 90% at 92% 10%, hsl(var(--plum) / 0.85) 0%, transparent 70%),
+    linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%);
+}
+.light .hero-aurora {
+  background:
+    radial-gradient(60% 120% at 12% 0%, hsl(var(--brand-h) 60% 70% / 0.35) 0%, transparent 60%),
+    radial-gradient(50% 90% at 92% 10%, hsl(var(--lavender)) 0%, transparent 70%),
+    linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%);
+}
+.text-gradient {
+  background: linear-gradient(92deg, hsl(var(--foreground)) 0%, hsl(var(--primary)) 70%, hsl(var(--brand-h) 80% 82%) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.light .text-gradient {
+  background: linear-gradient(92deg, hsl(var(--plum)) 0%, hsl(var(--primary)) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+@media print { .no-print { display: none !important; } }

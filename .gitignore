@@ -1,0 +1,17 @@
+# app/static (the built UI) is committed on purpose: bundle sync honours .gitignore
+node_modules/
+.databricks/
+__pycache__/
+*.pyc
+.venv*/
+.pytest_cache/
+.env
+.env.*
+frontend/.vite/
+test-results/
+playwright-report/
+
+# deck build artefacts (regenerate with deck/gslides/deck.py thumbs)
+deck/gslides/thumbnails/
+deck/gslides/uploads.json
+deck/gslides/temp_drive_files.json

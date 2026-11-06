@@ -1,0 +1,11 @@
+{
+  "key": "databricks",
+  "company": "Databricks",
+  "product": "Data Ingestion Service",
+  "hero_title": "Welcome to Data Ingestion Service",
+  "hero_subtitle": "Request governed, CDC-based ingestion in minutes, with cost, time to data and SLA forecast before you submit.",
+  "destination_label": "Bronze",
+  "logo_url": null,
+  "powered_by": "Powered by Databricks Lakeflow Connect",
+  "palette": { "brand_h": 6, "brand_s": "100%" }
+}

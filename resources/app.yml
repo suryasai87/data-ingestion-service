@@ -1,0 +1,69 @@
+resources:
+  apps:
+    dis_app:
+      name: ${var.app_name}
+      description: "Data Ingestion Service: governed self-service Lakeflow Connect ingestion with AI forecasts of cost, time to data and SLA"
+      source_code_path: ../app
+      # On-behalf-of: the user's own token is forwarded (X-Forwarded-Access-Token) so data previews run AS the user
+      # (their read-only grants, their name in system.query.history). iam.* scopes are defaults: never list them.
+      # Databricks Apps telemetry (GA): a local OTLP collector (gRPC, localhost:4314) writes logs (incl. user login
+      # events, event.name = app.auth), the app's spans (enduser.id on every API call) and metrics to these UC tables.
+      telemetry_export_destinations:
+        - unity_catalog:
+            logs_table: ${var.uc_catalog}.${var.uc_schema}.dis_otel_logs
+            metrics_table: ${var.uc_catalog}.${var.uc_schema}.dis_otel_metrics
+            traces_table: ${var.uc_catalog}.${var.uc_schema}.dis_otel_spans
+      user_api_scopes:
+        - sql
+        - catalog.catalogs:read
+        - catalog.schemas:read
+        - catalog.tables:read
+      config:
+        command: ["python", "app.py"]   # binds $DATABRICKS_APP_PORT itself
+        env:
+          - {name: DIS_BRAND, value: "${var.brand}"}
+          - {name: APP_NAME, value: "${var.app_name}"}
+          - {name: IDENTITY_MODE, value: apps}
+          - {name: LAKEBASE_ENDPOINT, value: "projects/${var.lakebase_project}/branches/production/endpoints/primary"}
+          - {name: LAKEBASE_DATABASE, value: databricks_postgres}
+          - {name: LAKEBASE_SCHEMA, value: ingest}
+          - {name: UC_CATALOG, value: "${var.uc_catalog}"}
+          - {name: UC_SCHEMA, value: "${var.uc_schema}"}
+          - {name: GATEWAY_STORAGE_SCHEMA, value: "${var.gateway_staging_schema}"}
+          - {name: DESTINATIONS_JSON, value: '[{"environment":"dev","label":"Foundation · DEV","catalog":"${var.destination_catalog}","schema":"foundation_dev","requires_approval":true},{"environment":"uat","label":"Foundation · UAT","catalog":"${var.destination_catalog}","schema":"foundation_uat","requires_approval":true},{"environment":"prod","label":"Foundation · PROD","catalog":"${var.destination_catalog}","schema":"foundation_prod","requires_approval":true}]'}
+          - {name: WAREHOUSE_ID, value_from: sql-warehouse}
+          - {name: LLM_ENDPOINT, value_from: llm-endpoint}
+          - {name: PLATFORM_ADMINS, value: "${workspace.current_user.userName},${var.platform_admins}"}
+          - {name: ALLOW_MUTATIONS, value: "${var.allow_mutations}"}
+          - {name: ALLOW_DEPLOY, value: "${var.allow_deploy}"}
+          - {name: GATEWAY_NODE_TYPE, value: "${var.gateway_node_type}"}
+          - {name: DEMO_CONNECTION, value: "${var.demo_connection}"}
+          - {name: DEMO_SOURCE_PROJECT, value: "${var.source_project}"}
+          - {name: DEMO_SOURCE_CATALOG, value: "${var.source_catalog}"}
+          - {name: DEMO_SOURCE_ENDPOINT, value: "projects/${var.source_project}/branches/production/endpoints/primary"}
+          - {name: DEMO_SOURCE_DATABASE, value: "${var.source_database}"}
+          - {name: DEMO_REPLICATION_PASSWORD, value_from: demo-replication}
+          - {name: SETUP_JOB_ID, value: "${resources.jobs.dis_setup.id}"}
+          - {name: HISTORY_JOB_ID, value: "${resources.jobs.dis_history.id}"}
+          - {name: GUARDIAN_JOB_ID, value: "${resources.jobs.dis_guardian.id}"}
+          - {name: MLFLOW_EXPERIMENT, value: "${resources.experiments.dis_forecast.name}"}
+          - {name: SNOW_MODE, value: "${var.servicenow_mode}"}
+          - {name: SNOW_INSTANCE, value: "${var.servicenow_instance}"}
+          - {name: SNOW_ASSIGNMENT_GROUP, value: "${var.servicenow_assignment_group}"}
+          - {name: OTEL_SERVICE_NAME, value: "${var.app_name}"}
+          - {name: OTEL_TRACES_SAMPLER, value: always_on}
+          - {name: OTEL_LOGS_TABLE, value: "${var.uc_catalog}.${var.uc_schema}.dis_otel_logs"}
+          - {name: OTEL_TRACES_TABLE, value: "${var.uc_catalog}.${var.uc_schema}.dis_otel_spans"}
+      resources:
+        - name: sql-warehouse
+          sql_warehouse: {id: "${var.warehouse_id}", permission: CAN_USE}
+        - name: llm-endpoint
+          serving_endpoint: {name: "${var.llm_endpoint}", permission: CAN_QUERY}
+        - name: demo-replication
+          secret: {scope: "${var.secret_scope}", key: demo_replication_password, permission: READ}
+        - name: setup-job
+          job: {id: "${resources.jobs.dis_setup.id}", permission: CAN_VIEW}
+        - name: history-job
+          job: {id: "${resources.jobs.dis_history.id}", permission: CAN_MANAGE_RUN}
+        - name: guardian-job
+          job: {id: "${resources.jobs.dis_guardian.id}", permission: CAN_MANAGE_RUN}

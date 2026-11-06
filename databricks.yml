@@ -1,0 +1,114 @@
+# Data Ingestion Service: Declarative Automation Bundle (Databricks CLI >= v1.20).
+#
+#   scripts/deploy.sh                    # build UI, deploy, run setup + history, start the app, verify 200 + RUNNING
+#   scripts/deploy.sh --code-only        # sync + redeploy the app code only
+#   scripts/deploy.sh -t new_workspace --profile P --var uc_catalog=<catalog> --var warehouse_id=<id>
+#
+# The bundle root ships to ${workspace.file_path}; the app runs from ./app (Apps ship only source_code_path),
+# the jobs run jobs/*.py with --root so they can import app/ modules. app/static (the built UI) is committed on
+# purpose: bundle sync honours .gitignore.
+bundle:
+  name: data-ingestion-service
+
+include:
+  - resources/*.yml
+
+sync:
+  exclude:
+    - frontend/**
+    - "**/node_modules/**"
+    - tests/**
+    - docs/**
+    - scripts/**
+    - deck/**
+    - .venv*/**
+    - "**/__pycache__/**"
+    - "**/*.pyc"
+    - .pytest_cache/**
+    - .env
+    - .env.*
+
+variables:
+  app_name:
+    description: Databricks App name (lowercase, unique in the workspace)
+    default: data-ingestion-service
+  brand:
+    description: Brand pack in app/branding (databricks; add your own pack)
+    default: databricks
+  uc_catalog:
+    description: Catalog for the service's lakehouse schemas (history, model, event logs, staging, Foundation)
+  uc_schema:
+    description: Schema for history features, the forecast model, the request mirror and pipeline event logs
+    default: data_ingestion_service
+  gateway_staging_schema:
+    description: Schema where ingestion gateways stage change data (a volume per gateway)
+    default: dis_gateway_staging
+  destination_catalog:
+    description: Catalog of the Foundation destination schemas
+    default: ${var.uc_catalog}
+  warehouse_id:
+    description: SQL warehouse (lakehouse tier, history, reconciliation)
+  llm_endpoint:
+    description: Chat endpoint for the assistant (Claude 5 rejects temperature; the app never sends it)
+    default: databricks-claude-sonnet-5
+  lakebase_project:
+    description: Lakebase project of the service's transactional store
+    default: data-ingestion-service
+  source_project:
+    description: Lakebase project acting as the demo ERP source (CDC through the PostgreSQL connector)
+    default: dis-erp-source
+  source_database:
+    description: Postgres database of the demo source
+    default: erp
+  demo_connection:
+    description: Optional POSTGRESQL connection to the demo source (log-based CDC; needs CREATE CONNECTION)
+    default: dis_erp_source_pg
+  source_catalog:
+    description: The demo source registered as a Unity Catalog database catalog (query-based ingestion)
+    default: dis_erp_source
+  secret_scope:
+    description: Secret scope holding the demo source's replication password (credentials in a vault)
+    default: data-ingestion-service
+  platform_admins:
+    description: Extra bootstrap admins (comma-separated); the deployer is always an admin ("none" = no extras)
+    default: none
+  allow_mutations:
+    description: "false = read-only kiosk"
+    default: "true"
+  allow_deploy:
+    description: "false = approvals work but deployments stop at the dry run"
+    default: "true"
+  demo_http_connection:
+    description: An existing UC HTTP connection the app SP may use for the REST-API demo ("none" = skip)
+    default: none
+  servicenow_mode:
+    description: "ServiceNow: simulator (built-in Table API, no instance) or rest (a real instance; add SNOW_USER / SNOW_PASSWORD or SNOW_CLIENT_ID / SNOW_CLIENT_SECRET as app secret resources)"
+    default: simulator
+  servicenow_instance:
+    description: "https://<name>.service-now.com (rest mode); none = not configured"
+    default: none
+  servicenow_assignment_group:
+    description: Assignment group for ingestion requests and incidents
+    default: Data Platform
+  gateway_node_type:
+    description: Node type for new ingestion gateways ("auto" = platform default; Apps reject empty env values)
+    default: auto
+
+targets:
+  # your-workspace: the live install
+  demo:
+    default: true
+    mode: production
+    workspace:
+      host: https://your-workspace.cloud.databricks.com
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      uc_catalog: main
+      warehouse_id: bda22e07d7130a32
+      demo_http_connection: demo_open_meteo
+
+  # any other workspace: pass --profile and the required variables (validate fails without them)
+  new_workspace:
+    mode: production
+    workspace:
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}

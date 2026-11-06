@@ -1,0 +1,87 @@
+resources:
+  experiments:
+    dis_forecast:
+      name: /Users/${workspace.current_user.userName}/${var.app_name}-forecast
+
+  jobs:
+    # Idempotent bootstrap (runs as the deployer): migrations + seeds, the app SP's Lakebase roles and UC grants,
+    # the demo source (database, tables, replication role, publication, slot), the UC connection and the secret.
+    dis_setup:
+      name: ${var.app_name}-setup
+      max_concurrent_runs: 1
+      environments:
+        - environment_key: dis
+          spec:
+            environment_version: "3"
+            dependencies: ["psycopg[binary]==3.2.3", "psycopg-pool==3.2.4", "numpy"]
+      tasks:
+        - task_key: setup
+          environment_key: dis
+          spark_python_task:
+            python_file: ../jobs/setup.py
+            parameters: ["--root", "${workspace.file_path}", "--app-name", "${var.app_name}",
+                         "--uc-catalog", "${var.uc_catalog}", "--uc-schema", "${var.uc_schema}",
+                         "--staging-schema", "${var.gateway_staging_schema}", "--destination-catalog", "${var.destination_catalog}",
+                         "--store-project", "${var.lakebase_project}", "--source-project", "${var.source_project}",
+                         "--source-database", "${var.source_database}", "--demo-connection", "${var.demo_connection}", "--source-catalog", "${var.source_catalog}",
+                         "--secret-scope", "${var.secret_scope}", "--warehouse-id", "${var.warehouse_id}",
+                         "--demo-http-connection", "${var.demo_http_connection}",
+                         "--env", "LAKEBASE_ENDPOINT=projects/${var.lakebase_project}/branches/production/endpoints/primary", "--env", "LAKEBASE_SCHEMA=ingest",
+                         "--env", "UC_CATALOG=${var.uc_catalog}", "--env", "UC_SCHEMA=${var.uc_schema}",
+                         "--env", "GATEWAY_STORAGE_SCHEMA=${var.gateway_staging_schema}", "--env", "WAREHOUSE_ID=${var.warehouse_id}",
+                         "--env", "DEMO_CONNECTION=${var.demo_connection}", "--env", "DEMO_SOURCE_DATABASE=${var.source_database}", "--env", "DEMO_SOURCE_CATALOG=${var.source_catalog}",
+                         "--env", "DEMO_SOURCE_ENDPOINT=projects/${var.source_project}/branches/production/endpoints/primary",
+                         "--env", "MLFLOW_EXPERIMENT=${resources.experiments.dis_forecast.name}"]
+
+    # Learn the forecast model from system tables (account-wide Lakeflow Connect history), evaluate, publish.
+    dis_history:
+      name: ${var.app_name}-history
+      max_concurrent_runs: 1
+      schedule:
+        quartz_cron_expression: "0 0 5 * * ?"
+        timezone_id: UTC
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: dis
+          spec:
+            environment_version: "3"
+            dependencies: ["psycopg[binary]==3.2.3", "psycopg-pool==3.2.4", "numpy", "mlflow-skinny"]
+      tasks:
+        - task_key: history
+          environment_key: dis
+          spark_python_task:
+            python_file: ../jobs/history.py
+            parameters: ["--root", "${workspace.file_path}", "--publish", "--write-uc",
+                         "--env", "LAKEBASE_ENDPOINT=projects/${var.lakebase_project}/branches/production/endpoints/primary", "--env", "LAKEBASE_SCHEMA=ingest",
+                         "--env", "UC_CATALOG=${var.uc_catalog}", "--env", "UC_SCHEMA=${var.uc_schema}",
+                         "--env", "GATEWAY_STORAGE_SCHEMA=${var.gateway_staging_schema}", "--env", "WAREHOUSE_ID=${var.warehouse_id}",
+                         "--env", "DEMO_CONNECTION=${var.demo_connection}", "--env", "DEMO_SOURCE_DATABASE=${var.source_database}", "--env", "DEMO_SOURCE_CATALOG=${var.source_catalog}",
+                         "--env", "DEMO_SOURCE_ENDPOINT=projects/${var.source_project}/branches/production/endpoints/primary",
+                         "--env", "MLFLOW_EXPERIMENT=${resources.experiments.dis_forecast.name}"]
+
+    # Every 30 min: health, auto-retry of transient failures, tickets for the rest, reconciliation, cost MTD,
+    # and the request mirror in Unity Catalog (the app's lakehouse read tier).
+    dis_guardian:
+      name: ${var.app_name}-guardian
+      max_concurrent_runs: 1
+      schedule:
+        quartz_cron_expression: "0 0/30 * * * ?"
+        timezone_id: UTC
+        pause_status: UNPAUSED
+      environments:
+        - environment_key: dis
+          spec:
+            environment_version: "3"
+            dependencies: ["psycopg[binary]==3.2.3", "psycopg-pool==3.2.4", "numpy"]
+      tasks:
+        - task_key: guardian
+          environment_key: dis
+          spark_python_task:
+            python_file: ../jobs/guardian.py
+            parameters: ["--root", "${workspace.file_path}",
+                         "--env", "LAKEBASE_ENDPOINT=projects/${var.lakebase_project}/branches/production/endpoints/primary", "--env", "LAKEBASE_SCHEMA=ingest",
+                         "--env", "UC_CATALOG=${var.uc_catalog}", "--env", "UC_SCHEMA=${var.uc_schema}",
+                         "--env", "GATEWAY_STORAGE_SCHEMA=${var.gateway_staging_schema}", "--env", "WAREHOUSE_ID=${var.warehouse_id}",
+                         "--env", "DEMO_CONNECTION=${var.demo_connection}", "--env", "DEMO_SOURCE_DATABASE=${var.source_database}", "--env", "DEMO_SOURCE_CATALOG=${var.source_catalog}",
+                         "--env", "DEMO_SOURCE_ENDPOINT=projects/${var.source_project}/branches/production/endpoints/primary",
+                         "--env", "MLFLOW_EXPERIMENT=${resources.experiments.dis_forecast.name}"]

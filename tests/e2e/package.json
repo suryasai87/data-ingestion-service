@@ -1,0 +1,7 @@
+{
+  "name": "data-ingestion-service-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node journeys.mjs" },
+  "devDependencies": { "playwright-core": "1.64.1" }
+}
